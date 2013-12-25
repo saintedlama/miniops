@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mini:Ops Dashboard</title>
+    <meta charset="utf-8">
+
+    <link href="public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="public/nvd3/nv.d3.min.css" rel="stylesheet">
+    <style type="text/css">
+        .panel-body h3 {
+            margin-top: 0;
+            margin-bottom: 0;
+            font-size: 36px;
+        }
+
+        #requestOverviewChart {
+            height: 300px;
+        }
+    </style>
+
+    <script src="public/jquery/jquery-1.10.2.min.js"></script>
+    <script src="public/bootstrap/js/bootstrap.min.js"></script>
+    <script src="public/angular/angular.min.js"></script>
+    <script src="public/nvd3/lib/d3.v3.js"></script>
+    <script src="public/nvd3/nv.d3.min.js"></script>
+
+    <script type="text/javascript">
+        function DataCtrl($scope, $http) {
+
+            $scope.refresh = function() {
+                // TODO: Set MiniOps data hub URL here
+                $http.jsonp('http://localhost:8080/ops?callback=JSON_CALLBACK')
+                    .success(function(data) {
+                        $scope.upSince = data.upSince;
+
+                        $scope.recordings = data.recordings;
+                        $scope.recordsToKeep = data.recordsToKeep;
+
+                        $scope.errors = data.errors;
+                        $scope.errorsToKeep = data.errorsToKeep;
+
+                        $scope.statistics = {
+                            '1xx' : 0,
+                            '2xx' : 0,
+                            '3xx' : 0,
+                            '4xx' : 0,
+                            '5xx' : 0
+                        }
+
+                        angular.forEach($scope.recordings, function(recording) {
+                            $scope.statistics['1xx'] += recording.statistics['1xx'] || 0;
+                            $scope.statistics['2xx'] += recording.statistics['2xx'] || 0;
+                            $scope.statistics['3xx'] += recording.statistics['3xx'] || 0;
+                            $scope.statistics['4xx'] += recording.statistics['4xx'] || 0;
+                            $scope.statistics['5xx'] += recording.statistics['5xx'] || 0;
+                        });
+
+                        $scope.chart()
+                    })
+                    .error(function(err) {
+                        // TODO: error
+                        console.log(err);
+                    });
+            };
+
+            $scope.chart = function() {
+                var statusCodes = ['1xx', '2xx', '3xx', '4xx', '5xx'];
+
+                var data = [];
+                statusCodes.forEach(function(statusCode) {
+                    data.push({
+                        key : statusCode,
+                        values : $scope.recordings.map(function(recording) {
+                            return [new Date(recording.date), recording.statistics[statusCode] || 0];
+                        })
+                    });
+                });
+
+                var colors = d3.scale.category20();
+                var keyColor = function(d) { return colors(d.key); };
+
+                nv.addGraph(function() {
+                    var chart = nv.models.stackedAreaChart()
+                            .useInteractiveGuideline(true)
+                            .x(function(d) { return d[0] })
+                            .y(function(d) { return d[1] })
+                            .color(keyColor)
+                            .transitionDuration(300);
+
+                    chart.xAxis.tickFormat(function(d) {
+                        return d3.time.format('%m/%d %Hh')(new Date(d));
+                    });
+
+                    chart.yAxis.tickFormat(d3.format(',.2f'));
+
+                    d3.select('#requestOverviewChart')
+                            .datum(data)
+                            .transition().duration(200)
+                            .call(chart);
+
+                    nv.utils.windowResize(chart.update);
+
+                    return chart;
+                });
+            };
+
+            $scope.refresh();
+        }
+    </script>
+</head>
+<body ng-app ng-controller="DataCtrl">
+    <div class="navbar navbar-inverse navbar-static-top" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#" ng-click="refresh()">Mini Ops <span class="glyphicon glyphicon-refresh"></span></a>
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <p class="navbar-text">
+                            <span class="label label-success">up since {{upSince | date:'short'}}</span>
+                        </p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Success <small>1xx/2xx/3xx</small></h3>
+                </div>
+                <div class="panel-body text-center text-success">
+                    <h3><small>{{statistics.1xx}}</small> / {{statistics.2xx}} / <small>{{statistics.3xx}}</small></h3>
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Client Errors <small>4xx</small></h3>
+                    </div>
+                    <div class="panel-body text-center text-warning">
+                        <h3>{{statistics.4xx}}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Server Errors <small>5xx</small></h3>
+                    </div>
+                    <div class="panel-body text-center text-danger">
+                        <h3>{{statistics.5xx}}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div>
+                <svg id="requestOverviewChart"></svg>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Request statistics (keeping {{recordsToKeep}} h)</h3>
+                    </div>
+                    <div class="panel-body" ng-hide="recordings.length">
+                        No request statistics recorded
+                    </div>
+
+                    <table class="table table-bordered" ng-show="recordings.length">
+                        <tr>
+                            <th>Date</th>
+                            <th>1xx</th>
+                            <th>2xx</th>
+                            <th>3xx</th>
+                            <th>4xx</th>
+                            <th>5xx</th>
+                        </tr>
+
+                        <tr ng-repeat="recording in recordings">
+                            <td>
+                                {{recording.date | date:'short' }}
+                            </td>
+                            <td>
+                                <span class="label label-default">{{recording.statistics.1xx}}</span>
+                            </td>
+                            <td>
+                                <span class="label label-success">{{recording.statistics.2xx}}</span>
+                            </td>
+                            <td>
+                                <span class="label label-info">{{recording.statistics.3xx}}</span>
+                            </td>
+                            <td>
+                               <span class="label label-warning">{{recording.statistics.4xx}}</span>
+                            </td>
+                            <td>
+                                <span class="label label-danger">{{recording.statistics.5xx}}</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Last {{errors.length}} errors (keeping max. {{errorsToKeep}})</h3>
+                    </div>
+                    <div class="panel-body" ng-hide="errors.length">
+                        No errors recorded
+                    </div>
+
+                    <table class="table table-bordered" ng-show="errors.length">
+                        <tr>
+                            <th>Date</th>
+                            <th>Error</th>
+                            <th>Path</th>
+                            <th>Method</th>
+                            <th>Params</th>
+                        </tr>
+
+                        <tr ng-repeat="error in errors">
+                            <td>
+                                {{error.date | date:'short' }}
+                            </td>
+                            <td>
+                                {{error.reason}}
+                            </td>
+                            <td>
+                                {{error.path}}
+                            </td>
+                            <td>
+                                {{error.method}}
+                            </td>
+                            <td>
+                                {{error.params}}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

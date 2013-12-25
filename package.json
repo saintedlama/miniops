@@ -1,0 +1,17 @@
+{
+  "name": "miniops",
+  "version": "0.1.0",
+  "description": "Dependency free in memory operations monitor for restify",
+  "main": "index.js",
+  "repository": "git://github.com/saintedlama/miniops.git",
+  "author": "Christoph Walcher <christoph.walcher@gmail.com>",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "operations",
+    "monitor",
+    "restify"
+  ],
+  "devDependencies": {
+    "restify": "*"
+  }
+}

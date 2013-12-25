@@ -11,7 +11,7 @@ MiniOps gives you an overview of
 MiniOps is dependency free so no persistence store (database) is needed but statistics are transient and will vanish
 with every service restart!
 
-## MiniOps dashbaord in action
+## MiniOps dashboard in action
 
 ![MiniOps Dashboard](https://raw.github.com/saintedlama/miniops/master/assets/dashboard.png)
 

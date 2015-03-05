@@ -5,7 +5,7 @@ var MiniOps = function(recordsToKeep, errorsToKeep) {
     this.upSince = new Date();
     this.recordings = [];
     this.errors = [];
-}
+};
 
 MiniOps.prototype.findRecordingsByDate = function(date) {
     for (var i=0;i<this.recordings.length;i++) {
@@ -13,12 +13,12 @@ MiniOps.prototype.findRecordingsByDate = function(date) {
             return this.recordings[i];
         }
     }
-}
+};
 
 MiniOps.prototype.createHourResolutionDate = function() {
     var h = new Date();
     return new Date(h.getFullYear(), h.getMonth(), h.getDate(), h.getHours());
-}
+};
 
 MiniOps.prototype.recorder = function() {
     var self = this;
@@ -69,7 +69,7 @@ MiniOps.prototype.recorder = function() {
             }
         }
     }
-}
+};
 
 MiniOps.prototype.dataHub = function() {
     var self = this;
@@ -82,6 +82,6 @@ MiniOps.prototype.dataHub = function() {
             errorsToKeep : self.errorsToKeep
         });
     }
-}
+};
 
 module.exports = MiniOps;
